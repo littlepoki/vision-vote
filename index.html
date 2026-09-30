@@ -7,63 +7,157 @@
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body { background-color: #f8f9fa; }
-    .chapter-box { max-height: 380px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: .375rem; padding: 15px; background-color: #fff; }
-    .chapter-item { border-bottom: 1px solid #eee; padding: 8px 0; }
-    .chapter-item:last-child { border-bottom: none; }
-    .voter-badge { background-color: #e9ecef; color: #495057; font-size: 0.85rem; margin-right: 4px; margin-bottom: 4px; display: inline-block; padding: 2px 8px; border-radius: 4px; }
+    /* 1. 提升對比度與基礎閱讀體驗 */
+    body {
+      background-color: #f4f6f9;
+      color: #111111;
+      font-size: 1.125rem; /* 18px，提升低視力閱讀快適度 */
+      line-height: 1.6;
+      font-family: system-ui, -apple-system, "Microsoft JhengHei", sans-serif;
+    }
+
+    .card {
+      border: 2px solid #333; /* 增強卡片邊界辨識度 */
+      border-radius: 8px;
+    }
+
+    h1, h2, h3, h4 {
+      color: #000;
+      font-weight: 700;
+    }
+
+    /* 2. 改善 Checkbox 遮蔽與排版問題 */
+    .chapter-box {
+      max-height: 450px;
+      overflow-y: auto;
+      border: 2px solid #666;
+      border-radius: 6px;
+      padding: 12px;
+      background-color: #ffffff;
+    }
+
+    .chapter-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px; /* 保持勾選框與文字間距 */
+      padding: 12px;
+      border-bottom: 1px solid #ddd;
+      cursor: pointer;
+    }
+
+    .chapter-item:hover {
+      background-color: #f0f4f8;
+    }
+
+    .chapter-item:last-child {
+      border-bottom: none;
+    }
+
+    /* 加大 Checkbox 尺寸與避免變形 */
+    .chapter-checkbox {
+      width: 1.4em !important;
+      height: 1.4em !important;
+      margin-top: 0.25em !important;
+      flex-shrink: 0; /* 防止勾選框被壓縮 */
+      cursor: pointer;
+    }
+
+    .chapter-label {
+      cursor: pointer;
+      font-size: 1.05rem;
+      color: #111;
+      word-break: break-word;
+    }
+
+    /* 3. 強化鍵盤 Focus 焦點提示（無障礙重要指標） */
+    a:focus, button:focus, input:focus, .chapter-checkbox:focus {
+      outline: 3px solid #0d6efd !important;
+      outline-offset: 2px !important;
+    }
+
+    /* 4. 統計排名卡片優化 */
+    .rank-card {
+      background: #ffffff;
+      border: 2px solid #444;
+      border-left: 8px solid #0d6efd;
+      padding: 16px;
+      margin-bottom: 16px;
+      border-radius: 6px;
+    }
+
+    .progress {
+      height: 16px;
+      background-color: #e2e8f0;
+      border: 1px solid #999;
+    }
+
+    .voter-badge {
+      background-color: #212529;
+      color: #ffffff;
+      font-size: 0.95rem;
+      margin-right: 6px;
+      margin-bottom: 6px;
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 4px;
+    }
   </style>
 </head>
 <body>
 
-<div class="container my-5" style="max-width: 900px;">
+<main class="container my-4" style="max-width: 960px;" id="main-content">
   <div class="card shadow-sm mb-4">
-    <div class="card-body">
-      <h2 class="card-title text-primary mb-3">《迎接視茫茫世界：盲的意義、影響及面對》</h2>
-      <h4 class="card-subtitle mb-4 text-muted">章節閱讀意願票選</h4>
+    <div class="card-body p-4">
+      <h1 class="card-title h2 text-primary mb-2">《迎接視茫茫世界：盲的意義、影響及面對》</h1>
+      <p class="h4 mb-4 text-dark">章節閱讀意願票選系統</p>
 
       <!-- 登入狀態區塊 -->
-      <div id="auth-section" class="alert alert-secondary d-flex justify-content-between align-items-center">
+      <div id="auth-section" class="alert alert-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" role="region" aria-label="會員登入狀態">
         <div>
-          <span id="user-info">尚未登入</span>
+          <span id="user-info" class="fw-bold">尚未登入</span>
         </div>
         <div>
-          <button id="btn-login" class="btn btn-outline-danger btn-sm" onclick="loginWithGoogle()">使用 Google 帳號登入</button>
-          <button id="btn-logout" class="btn btn-outline-secondary btn-sm d-none" onclick="logout()">登出</button>
+          <button id="btn-login" class="btn btn-danger btn-lg" onclick="loginWithGoogle()" aria-label="使用 Google 帳號登入">使用 Google 帳號登入</button>
+          <button id="btn-logout" class="btn btn-outline-dark btn-md d-none" onclick="logout()" aria-label="登出帳號">登出</button>
         </div>
       </div>
 
       <!-- 投票表單 -->
       <form id="vote-form" class="mt-4">
-        <div class="mb-3">
-          <label for="display-name" class="form-label fw-bold">顯示名稱（中文或英文名稱）：</label>
-          <input type="text" class="form-control" id="display-name" placeholder="例如：張小明 / Alex" required>
+        <div class="mb-4">
+          <label for="display-name" class="form-label fw-bold h5">顯示名稱（中文或英文名稱）：</label>
+          <input type="text" class="form-control form-control-lg" id="display-name" placeholder="例如：張小明 / Alex" required aria-required="true">
         </div>
 
-        <div class="mb-3">
-          <label class="form-label fw-bold">
-            請選擇您最想先閱讀的 3 個章節（已選擇 <span id="selected-count" class="text-danger fw-bold">0</span> / 3）：
-          </label>
-          <div class="chapter-box" id="chapter-list">
-            <!-- 章節內容動態加載 -->
-          </div>
+        <div class="mb-4">
+          <fieldset>
+            <legend class="form-label fw-bold h5">
+              請選擇您最想先閱讀的 3 個章節
+              <span class="d-block text-danger fw-bold mt-1" id="selected-count-status" aria-live="polite">
+                （目前已選擇 <span id="selected-count">0</span> / 3 個）
+              </span>
+            </legend>
+            <div class="chapter-box" id="chapter-list" role="group" aria-label="章節選項列表">
+              <!-- 章節內容動態加載 -->
+            </div>
+          </fieldset>
         </div>
 
-        <button type="submit" id="btn-submit" class="btn btn-success w-100" disabled>送出 / 更新投票</button>
+        <button type="submit" id="btn-submit" class="btn btn-success btn-lg w-100 fw-bold" disabled aria-disabled="true">送出 / 更新投票結果</button>
       </form>
     </div>
   </div>
 
   <!-- 統計與排名結果區塊 -->
-  <div class="card shadow-sm">
-    <div class="card-body">
-      <h3 class="card-title text-dark mb-4">目前章節票選比例排名</h3>
-      <div id="ranking-results">
+  <section class="card shadow-sm" aria-labelledby="ranking-title">
+    <div class="card-body p-4">
+      <h2 id="ranking-title" class="card-title h3 text-dark mb-4">目前章節票選比例排名</h2>
+      <div id="ranking-results" aria-live="polite">
         <p class="text-muted">載入統計資料中...</p>
       </div>
     </div>
-  </div>
-</div>
+  </section>
+</main>
 
 <!-- Firebase SDK (v10 Modular) -->
 <script type="module">
@@ -71,8 +165,8 @@
   import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
   import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-  // TODO: 請替換為您在 Firebase 專案設定取得的金鑰配置
-  const firebaseConfig = { 
+  // 請填入您的 Firebase 設定檔
+  const firebaseConfig = {
   apiKey: "AIzaSyDGXZmcWyHWQ8bA0QWxSmx2b61YP96NFR0",
   authDomain: "votes-blindness.firebaseapp.com",
   projectId: "votes-blindness",
@@ -87,7 +181,7 @@
   const db = getFirestore(app);
   const provider = new GoogleAuthProvider();
 
-  // 章節清單資料結構
+  // 章節清單資料
   const chapters = [
     { id: "1-1", title: "第一章 「喪失」的分析 - 第一節 明眼的我不存在" },
     { id: "1-2", title: "第一章 「喪失」的分析 - 第二節 心理安全感的基本「喪失」（包含：1) 喪失生理完整、2) 喪失對其他感官的信賴、3) 喪失與環境現實接觸的能力、4) 喪失視覺背景、5) 喪失光的安全感）" },
@@ -120,24 +214,24 @@
   let currentUser = null;
   const selectedSet = new Set();
 
-  // 渲染章節核取方塊
+  // 動態渲染選項（採用高相容性 flex 結構）
   const box = document.getElementById('chapter-list');
   chapters.forEach(chap => {
     const item = document.createElement('div');
-    item.className = 'form-check chapter-item';
+    item.className = 'chapter-item';
     item.innerHTML = `
-      <input class="form-check-input chapter-checkbox" type="checkbox" value="${chap.id}" id="chk-${chap.id}">
-      <label class="form-check-label" for="chk-${chap.id}">${chap.title}</label>
+      <input class="chapter-checkbox" type="checkbox" value="${chap.id}" id="chk-${chap.id}" aria-label="${chap.title}">
+      <label class="chapter-label" for="chk-${chap.id}">${chap.title}</label>
     `;
     box.appendChild(item);
   });
 
-  // 監聽 Checkbox 選擇數量限制
+  // 監聽 Checkbox 變更
   document.querySelectorAll('.chapter-checkbox').forEach(chk => {
     chk.addEventListener('change', (e) => {
       if (e.target.checked) {
         if (selectedSet.size >= 3) {
-          alert('每個帳號最多只能選擇 3 個章節！');
+          alert('提示：每位使用者最多只能選擇 3 個章節！');
           e.target.checked = false;
           return;
         }
@@ -152,16 +246,18 @@
   function updateUIState() {
     document.getElementById('selected-count').innerText = selectedSet.size;
     const btnSubmit = document.getElementById('btn-submit');
-    btnSubmit.disabled = !(currentUser && selectedSet.size === 3);
+    const isReady = currentUser && selectedSet.size === 3;
+    btnSubmit.disabled = !isReady;
+    btnSubmit.setAttribute('aria-disabled', !isReady);
   }
 
-  // Google 登入 / 登出處理
+  // Google 登入 / 登出
   window.loginWithGoogle = () => {
     signInWithPopup(auth, provider).catch(error => alert('登入失敗: ' + error.message));
   };
   window.logout = () => signOut(auth);
 
-  // 帳號狀態監聽
+  // 監聽登入狀態
   onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     const userInfo = document.getElementById('user-info');
@@ -169,21 +265,20 @@
     const btnLogout = document.getElementById('btn-logout');
 
     if (user) {
-      userInfo.innerHTML = `已登入：<strong>${user.displayName || user.email}</strong> (${user.email})`;
+      userInfo.innerHTML = `當前登入：<span class="text-primary">${user.displayName || user.email}</span>`;
       btnLogin.classList.add('d-none');
       btnLogout.classList.remove('d-none');
 
-      // 嘗試讀取該用戶過去的投票紀錄
+      // 讀取既有紀錄
       const voteRef = doc(db, "votes", user.uid);
       const voteSnap = await getDoc(voteRef);
       if (voteSnap.exists()) {
         const data = voteSnap.data();
         document.getElementById('display-name').value = data.displayName || '';
         
-        // 勾選過去的選擇
         selectedSet.clear();
         document.querySelectorAll('.chapter-checkbox').forEach(chk => {
-          if (data.choices.includes(chk.value)) {
+          if (data.choices && data.choices.includes(chk.value)) {
             chk.checked = true;
             selectedSet.add(chk.value);
           } else {
@@ -192,7 +287,7 @@
         });
       }
     } else {
-      userInfo.innerText = '尚未登入（請先登入以進行投票）';
+      userInfo.innerText = '尚未登入（投票前請先登入 Google 帳號）';
       btnLogin.classList.remove('d-none');
       btnLogout.classList.add('d-none');
       selectedSet.clear();
@@ -201,17 +296,16 @@
     updateUIState();
   });
 
-  // 表單送出（寫入/更新 Firestore）
+  // 表單送出
   document.getElementById('vote-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!currentUser) return alert('請先登入 Google 帳號！');
-    if (selectedSet.size !== 3) return alert('必須選擇 3 個章節！');
+    if (selectedSet.size !== 3) return alert('請選擇恰好 3 個章節！');
 
     const displayName = document.getElementById('display-name').value.trim();
-    if (!displayName) return alert('請輸入您的姓名！');
+    if (!displayName) return alert('請輸入您的中文或英文名稱！');
 
     try {
-      // 覆蓋寫入：以 User UID 作為 Document ID
       await setDoc(doc(db, "votes", currentUser.uid), {
         uid: currentUser.uid,
         email: currentUser.email,
@@ -219,13 +313,13 @@
         choices: Array.from(selectedSet),
         updatedAt: new Date()
       });
-      alert('投票成功！您的選擇已記錄/更新。');
+      alert('投票成功！您的選項已更新。');
     } catch (err) {
       alert('儲存失敗：' + err.message);
     }
   });
 
-  // 即時監聽所有投票資料並進行統計排名
+  // 即時統計監聽與渲染
   onSnapshot(collection(db, "votes"), (snapshot) => {
     const stats = {};
     chapters.forEach(c => stats[c.id] = { ...c, count: 0, users: [] });
@@ -245,10 +339,8 @@
       }
     });
 
-    // 計算排名
     const sortedResults = Object.values(stats).sort((a, b) => b.count - a.count);
 
-    // 渲染排名畫面上
     const resultsContainer = document.getElementById('ranking-results');
     resultsContainer.innerHTML = '';
 
@@ -257,20 +349,20 @@
       
       const voterBadges = item.users.length > 0 
         ? item.users.map(u => `<span class="voter-badge">${u}</span>`).join('') 
-        : '<span class="text-muted small">尚無人選擇</span>';
+        : '<span class="text-muted">尚無人選擇</span>';
 
-      const card = document.createElement('div');
-      card.className = 'mb-3 p-3 border-start border-4 border-primary bg-light rounded';
+      const card = document.createElement('article');
+      card.className = 'rank-card';
       card.innerHTML = `
-        <div class="d-flex justify-content-between align-items-center fw-bold">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 fw-bold h5 mb-2">
           <div>第 ${index + 1} 名：${item.title}</div>
           <div class="text-primary">${item.count} 票 (${percent}%)</div>
         </div>
-        <div class="progress my-2" style="height: 10px;">
-          <div class="progress-bar" role="progressbar" style="width: ${percent}%;"></div>
+        <div class="progress my-2" role="progressbar" aria-valuenow="${percent}" aria-valuemin="0" aria-valuemax="100" aria-label="${item.title} 獲得 ${percent}% 的票數">
+          <div class="progress-bar bg-primary" style="width: ${percent}%;"></div>
         </div>
         <div class="mt-2">
-          <small class="fw-bold text-secondary">選擇的使用者：</small>
+          <span class="fw-bold text-dark">選擇的使用者：</span>
           <div class="mt-1">${voterBadges}</div>
         </div>
       `;
