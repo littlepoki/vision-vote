@@ -166,7 +166,7 @@
   import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
   // 請填入您的 Firebase 設定檔
-  const firebaseConfig = {
+const firebaseConfig = {
   apiKey: "AIzaSyDGXZmcWyHWQ8bA0QWxSmx2b61YP96NFR0",
   authDomain: "votes-blindness.firebaseapp.com",
   projectId: "votes-blindness",
@@ -174,7 +174,8 @@
   messagingSenderId: "292066576298",
   appId: "1:292066576298:web:5160c54b40fbcebb24cdd3",
   measurementId: "G-TWHBR5W3EL"
-  };
+};
+
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
