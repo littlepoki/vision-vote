@@ -214,7 +214,7 @@
   let currentUser = null;
   const selectedSet = new Set();
 
-  // 動態渲染選項（採用高相容性 flex 結構）
+  // 動態渲染選項
   const box = document.getElementById('chapter-list');
   chapters.forEach(chap => {
     const item = document.createElement('div');
@@ -344,7 +344,17 @@
     const resultsContainer = document.getElementById('ranking-results');
     resultsContainer.innerHTML = '';
 
+    // 🔥 同票數同名次邏輯處理 🔥
+    let currentRank = 0;
+    let previousCount = -1;
+
     sortedResults.forEach((item, index) => {
+      // 若與前一個項目的票數不同，排名更新為「當前索引 + 1」；相同票數則維持 currentRank
+      if (item.count !== previousCount) {
+        currentRank = index + 1;
+        previousCount = item.count;
+      }
+
       const percent = totalVotePoints > 0 ? ((item.count / totalVotePoints) * 100).toFixed(1) : 0;
       
       const voterBadges = item.users.length > 0 
@@ -355,7 +365,7 @@
       card.className = 'rank-card';
       card.innerHTML = `
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 fw-bold h5 mb-2">
-          <div>第 ${index + 1} 名：${item.title}</div>
+          <div>第 ${currentRank} 名：${item.title}</div>
           <div class="text-primary">${item.count} 票 (${percent}%)</div>
         </div>
         <div class="progress my-2" role="progressbar" aria-valuenow="${percent}" aria-valuemin="0" aria-valuemax="100" aria-label="${item.title} 獲得 ${percent}% 的票數">
