@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>《迎接視茫茫世界》章節閱讀意願票選</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f8f9fa; }
+    .chapter-box { max-height: 380px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: .375rem; padding: 15px; background-color: #fff; }
+    .chapter-item { border-bottom: 1px solid #eee; padding: 8px 0; }
+    .chapter-item:last-child { border-bottom: none; }
+    .voter-badge { background-color: #e9ecef; color: #495057; font-size: 0.85rem; margin-right: 4px; margin-bottom: 4px; display: inline-block; padding: 2px 8px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+<div class="container my-5" style="max-width: 900px;">
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <h2 class="card-title text-primary mb-3">《迎接視茫茫世界：盲的意義、影響及面對》</h2>
+      <h4 class="card-subtitle mb-4 text-muted">章節閱讀意願票選</h4>
+
+      <!-- 登入狀態區塊 -->
+      <div id="auth-section" class="alert alert-secondary d-flex justify-content-between align-items-center">
+        <div>
+          <span id="user-info">尚未登入</span>
+        </div>
+        <div>
+          <button id="btn-login" class="btn btn-outline-danger btn-sm" onclick="loginWithGoogle()">使用 Google 帳號登入</button>
+          <button id="btn-logout" class="btn btn-outline-secondary btn-sm d-none" onclick="logout()">登出</button>
+        </div>
+      </div>
+
+      <!-- 投票表單 -->
+      <form id="vote-form" class="mt-4">
+        <div class="mb-3">
+          <label for="display-name" class="form-label fw-bold">顯示名稱（中文或英文名稱）：</label>
+          <input type="text" class="form-control" id="display-name" placeholder="例如：張小明 / Alex" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-bold">
+            請選擇您最想先閱讀的 3 個章節（已選擇 <span id="selected-count" class="text-danger fw-bold">0</span> / 3）：
+          </label>
+          <div class="chapter-box" id="chapter-list">
+            <!-- 章節內容動態加載 -->
+          </div>
+        </div>
+
+        <button type="submit" id="btn-submit" class="btn btn-success w-100" disabled>送出 / 更新投票</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 統計與排名結果區塊 -->
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h3 class="card-title text-dark mb-4">目前章節票選比例排名</h3>
+      <div id="ranking-results">
+        <p class="text-muted">載入統計資料中...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK (v10 Modular) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  // TODO: 請替換為您在 Firebase 專案設定取得的金鑰配置
+  const firebaseConfig = { 
+  apiKey: "AIzaSyDGXZmcWyHWQ8bA0QWxSmx2b61YP96NFR0",
+  authDomain: "votes-blindness.firebaseapp.com",
+  projectId: "votes-blindness",
+  storageBucket: "votes-blindness.firebasestorage.app",
+  messagingSenderId: "292066576298",
+  appId: "1:292066576298:web:5160c54b40fbcebb24cdd3",
+  measurementId: "G-TWHBR5W3EL"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const provider = new GoogleAuthProvider();
+
+  // 章節清單資料結構
+  const chapters = [
+    { id: "1-1", title: "第一章 「喪失」的分析 - 第一節 明眼的我不存在" },
+    { id: "1-2", title: "第一章 「喪失」的分析 - 第二節 心理安全感的基本「喪失」（包含：1) 喪失生理完整、2) 喪失對其他感官的信賴、3) 喪失與環境現實接觸的能力、4) 喪失視覺背景、5) 喪失光的安全感）" },
+    { id: "1-3", title: "第一章 「喪失」的分析 - 第三節 喪失日常生活的基本能力（包含：1) 喪失行動的能力、2) 喪失日常生活技能）" },
+    { id: "1-4", title: "第一章 「喪失」的分析 - 第四節 喪失與人溝通的能力（包含：1) 喪失文字溝通的能力、2) 喪失口語溝通的能力、3) 喪失獲取資訊的能力）" },
+    { id: "1-5", title: "第一章 「喪失」的分析 - 第五節 喪失欣賞的能力（包含：1) 喪失欣賞令人愉悅事物之能力、2) 喪失欣賞美麗事物的能力）" },
+    { id: "1-6", title: "第一章 「喪失」的分析 - 第六節 職業及經濟方面的喪失（包含：1) 喪失從事休閒娛樂的能力、2) 喪失工作生涯、工作目標以及工作機會、3) 喪失經濟安全）" },
+    { id: "1-7", title: "第一章 「喪失」的分析 - 第七節 人格方面的喪失（包含：1) 喪失個人獨立性、2) 喪失社會適當性、3) 喪失個人隱私、4) 喪失自尊、5) 喪失人格整合）" },
+    { id: "1-8", title: "第一章 「喪失」的分析 - 第八節 其他方面的喪失（包含：1) 伴隨「盲」而來的其他喪失、2) 伴隨「盲」而來的收穫、3) 視障服務工作的信念）" },
+    { id: "2-1", title: "第二章 重建以及新生活的建立 - 第一節 幫助視障者建立新生活" },
+    { id: "2-2", title: "第二章 重建以及新生活的建立 - 第二節 訓練視覺以外的其他感官" },
+    { id: "2-3", title: "第二章 重建以及新生活的建立 - 第三節 心理安全感的回復（包含：1) 生理整合感的回復、2) 對視覺以外其他感官的信心之回復、3) 與環境現實接觸能力之回復、4) 視覺背景的回復、5) 光的安全感之回復）" },
+    { id: "2-4", title: "第二章 重建以及新生活的建立 - 第四節 基本技能的回復（包含：1) 行動能力的回復、2) 日常生活技能的回復）" },
+    { id: "2-5", title: "第二章 重建以及新生活的建立 - 第五節 溝通能力的回復（包含：1) 文字溝通的能力之回復、2) 口語溝通的能力之回復、3) 獲取資訊的能力之回復）" },
+    { id: "2-6", title: "第二章 重建以及新生活的建立 - 第六節 欣賞能力的回復（包含：1) 欣賞令人愉悅事物的能力之回復、2) 欣賞美麗事物能力之回復）" },
+    { id: "2-7", title: "第二章 重建以及新生活的建立 - 第七節 職業及經濟地位的回復（包含：1) 休閒娛樂能力的回復、2) 工作生涯、工作目標及工作機會之回復、3) 經濟安全的回復）" },
+    { id: "2-8", title: "第二章 重建以及新生活的建立 - 第八節 人格獨立性的回復（包含：1) 個人獨立性的回復、2) 社會適當性的回復、3) 社會的注意、4) 自尊的回復、5) 完整人格的重組）" },
+    { id: "2-9", title: "第二章 重建以及新生活的建立 - 第九節 幫助視障者的家庭" },
+    { id: "2-10", title: "第二章 重建以及新生活的建立 - 第十節 教育社會大眾" },
+    { id: "3-1", title: "第三章 不同視障者所面臨的不同問題 - 第一節 不同年齡的視障者所面臨的特殊問題（包含：1) 學齡前的視障者：視障兒的父母面臨的問題、2) 學齡階段的視障者：如何取得教育資源、3) 青少年階段的視障者、4) 老年視障者）" },
+    { id: "3-2", title: "第三章 不同視障者所面臨的不同問題 - 第二節 先天性視障者" },
+    { id: "3-3", title: "第三章 不同視障者所面臨的不同問題 - 第三節 視多障的視障者所面臨的特殊問題（包含：1) 視障以及其他的殘障、2) 「聾」與「盲」的比較、3) 既「聾」又「盲」的視障者、4) 部分「聾」的視障者面臨的特殊問題、5) 其他殘障情形造成的特殊困難）" },
+    { id: "3-4", title: "第三章 不同視障者所面臨的不同問題 - 第四節 弱智及精神耗弱的視障者所面臨的特殊問題（包含：1) 精神病、2) 弱智）" },
+    { id: "3-5", title: "第三章 不同視障者所面臨的不同問題 - 第五節 弱視視障者所面臨的特殊問題（包含：1) 具有極少量殘存視力的視障者、2) 弱視視障者）" },
+    { id: "3-6", title: "第三章 不同視障者所面臨的不同問題 - 第六節 視力漸漸消失所帶來的問題（包含：1) 殘餘視力漸漸減少、2) 準備邁向全盲的重建措施）" },
+    { id: "4-1", title: "第四章 開啟視障者工作的天地 - 第一節 有關機構及團體（包含：1) 機構及團體的觀點、2) 視障者的庇護工場、3) 視障服務工作的現在與未來）" },
+    { id: "4-2", title: "第四章 開啟視障者工作的天地 - 第二節 視障服務工作者（包含：1) 社會工作者（視障者或明眼工作者）、2) 志願工作者、3) 矇眼訓練）" }
+  ];
+
+  let currentUser = null;
+  const selectedSet = new Set();
+
+  // 渲染章節核取方塊
+  const box = document.getElementById('chapter-list');
+  chapters.forEach(chap => {
+    const item = document.createElement('div');
+    item.className = 'form-check chapter-item';
+    item.innerHTML = `
+      <input class="form-check-input chapter-checkbox" type="checkbox" value="${chap.id}" id="chk-${chap.id}">
+      <label class="form-check-label" for="chk-${chap.id}">${chap.title}</label>
+    `;
+    box.appendChild(item);
+  });
+
+  // 監聽 Checkbox 選擇數量限制
+  document.querySelectorAll('.chapter-checkbox').forEach(chk => {
+    chk.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        if (selectedSet.size >= 3) {
+          alert('每個帳號最多只能選擇 3 個章節！');
+          e.target.checked = false;
+          return;
+        }
+        selectedSet.add(e.target.value);
+      } else {
+        selectedSet.delete(e.target.value);
+      }
+      updateUIState();
+    });
+  });
+
+  function updateUIState() {
+    document.getElementById('selected-count').innerText = selectedSet.size;
+    const btnSubmit = document.getElementById('btn-submit');
+    btnSubmit.disabled = !(currentUser && selectedSet.size === 3);
+  }
+
+  // Google 登入 / 登出處理
+  window.loginWithGoogle = () => {
+    signInWithPopup(auth, provider).catch(error => alert('登入失敗: ' + error.message));
+  };
+  window.logout = () => signOut(auth);
+
+  // 帳號狀態監聽
+  onAuthStateChanged(auth, async (user) => {
+    currentUser = user;
+    const userInfo = document.getElementById('user-info');
+    const btnLogin = document.getElementById('btn-login');
+    const btnLogout = document.getElementById('btn-logout');
+
+    if (user) {
+      userInfo.innerHTML = `已登入：<strong>${user.displayName || user.email}</strong> (${user.email})`;
+      btnLogin.classList.add('d-none');
+      btnLogout.classList.remove('d-none');
+
+      // 嘗試讀取該用戶過去的投票紀錄
+      const voteRef = doc(db, "votes", user.uid);
+      const voteSnap = await getDoc(voteRef);
+      if (voteSnap.exists()) {
+        const data = voteSnap.data();
+        document.getElementById('display-name').value = data.displayName || '';
+        
+        // 勾選過去的選擇
+        selectedSet.clear();
+        document.querySelectorAll('.chapter-checkbox').forEach(chk => {
+          if (data.choices.includes(chk.value)) {
+            chk.checked = true;
+            selectedSet.add(chk.value);
+          } else {
+            chk.checked = false;
+          }
+        });
+      }
+    } else {
+      userInfo.innerText = '尚未登入（請先登入以進行投票）';
+      btnLogin.classList.remove('d-none');
+      btnLogout.classList.add('d-none');
+      selectedSet.clear();
+      document.querySelectorAll('.chapter-checkbox').forEach(chk => chk.checked = false);
+    }
+    updateUIState();
+  });
+
+  // 表單送出（寫入/更新 Firestore）
+  document.getElementById('vote-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!currentUser) return alert('請先登入 Google 帳號！');
+    if (selectedSet.size !== 3) return alert('必須選擇 3 個章節！');
+
+    const displayName = document.getElementById('display-name').value.trim();
+    if (!displayName) return alert('請輸入您的姓名！');
+
+    try {
+      // 覆蓋寫入：以 User UID 作為 Document ID
+      await setDoc(doc(db, "votes", currentUser.uid), {
+        uid: currentUser.uid,
+        email: currentUser.email,
+        displayName: displayName,
+        choices: Array.from(selectedSet),
+        updatedAt: new Date()
+      });
+      alert('投票成功！您的選擇已記錄/更新。');
+    } catch (err) {
+      alert('儲存失敗：' + err.message);
+    }
+  });
+
+  // 即時監聽所有投票資料並進行統計排名
+  onSnapshot(collection(db, "votes"), (snapshot) => {
+    const stats = {};
+    chapters.forEach(c => stats[c.id] = { ...c, count: 0, users: [] });
+
+    let totalVotePoints = 0;
+
+    snapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      if (data.choices && Array.isArray(data.choices)) {
+        data.choices.forEach(cId => {
+          if (stats[cId]) {
+            stats[cId].count += 1;
+            stats[cId].users.push(data.displayName || '匿名');
+            totalVotePoints += 1;
+          }
+        });
+      }
+    });
+
+    // 計算排名
+    const sortedResults = Object.values(stats).sort((a, b) => b.count - a.count);
+
+    // 渲染排名畫面上
+    const resultsContainer = document.getElementById('ranking-results');
+    resultsContainer.innerHTML = '';
+
+    sortedResults.forEach((item, index) => {
+      const percent = totalVotePoints > 0 ? ((item.count / totalVotePoints) * 100).toFixed(1) : 0;
+      
+      const voterBadges = item.users.length > 0 
+        ? item.users.map(u => `<span class="voter-badge">${u}</span>`).join('') 
+        : '<span class="text-muted small">尚無人選擇</span>';
+
+      const card = document.createElement('div');
+      card.className = 'mb-3 p-3 border-start border-4 border-primary bg-light rounded';
+      card.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center fw-bold">
+          <div>第 ${index + 1} 名：${item.title}</div>
+          <div class="text-primary">${item.count} 票 (${percent}%)</div>
+        </div>
+        <div class="progress my-2" style="height: 10px;">
+          <div class="progress-bar" role="progressbar" style="width: ${percent}%;"></div>
+        </div>
+        <div class="mt-2">
+          <small class="fw-bold text-secondary">選擇的使用者：</small>
+          <div class="mt-1">${voterBadges}</div>
+        </div>
+      `;
+      resultsContainer.appendChild(card);
+    });
+  });
+</script>
+
+</body>
+</html>
